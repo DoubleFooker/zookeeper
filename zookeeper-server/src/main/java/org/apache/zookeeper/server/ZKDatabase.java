@@ -223,7 +223,7 @@ public class ZKDatabase {
     public ConcurrentHashMap<Long, Integer> getSessionWithTimeOuts() {
         return sessionsWithTimeouts;
     }
-
+    // 记录已提交选票信息 监听器，本地log发生改变旧更新
     private final PlayBackListener commitProposalPlaybackListener = new PlayBackListener() {
         public void onTxnLoaded(TxnHeader hdr, Record txn){
             addCommittedProposal(hdr, txn);
@@ -603,6 +603,8 @@ public class ZKDatabase {
                 LOG.warn("configuration znode missing (should only happen during upgrade), creating the node");
                 this.dataTree.addConfigNode();
             }
+
+            // TODO qv.toString().getBytes() qv只保存集群节点的信息，存储bytes做什么用？？
             this.dataTree.setData(ZooDefs.CONFIG_NODE, qv.toString().getBytes(), -1, qv.getVersion(), Time.currentWallTime());
         } catch (NoNodeException e) {
             System.out.println("configuration node missing - should not happen");

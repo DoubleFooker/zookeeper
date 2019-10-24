@@ -18,14 +18,14 @@
 
 package org.apache.zookeeper.server;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.Flushable;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.Random;
 import java.util.concurrent.LinkedBlockingQueue;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * This RequestProcessor logs requests to disk. It batches the requests to do
@@ -156,6 +156,7 @@ public class SyncRequestProcessor extends ZooKeeperCriticalThread implements
                         continue;
                     }
                     toFlush.add(si);
+                    // 批量记录
                     if (toFlush.size() > 1000) {
                         flush(toFlush);
                     }

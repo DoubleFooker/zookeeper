@@ -398,7 +398,7 @@ public class ClientCnxn {
         connectTimeout = sessionTimeout / hostProvider.size();
         readTimeout = sessionTimeout * 2 / 3;
         readOnly = canBeReadOnly;
-
+        // 创建了两个线程，负责发送消息和watch事件消息
         sendThread = new SendThread(clientCnxnSocket);
         eventThread = new EventThread();
         this.clientConfig=zooKeeper.getClientConfig();
@@ -503,10 +503,12 @@ public class ClientCnxn {
            try {
               isRunning = true;
               while (true) {
+                  // 等待队列获取待处理事件
                  Object event = waitingEvents.take();
                  if (event == eventOfDeath) {
                     wasKilled = true;
                  } else {
+                     // 处理事件类型
                     processEvent(event);
                  }
                  if (wasKilled)
@@ -1010,16 +1012,19 @@ public class ClientCnxn {
                                                        childWatchesBatch);
                         RequestHeader header = new RequestHeader(-8, OpCode.setWatches);
                         Packet packet = new Packet(header, new ReplyHeader(), sw, null, null);
+                        // 自动重置watch事件发送包
                         outgoingQueue.addFirst(packet);
                     }
                 }
             }
 
             for (AuthData id : authInfo) {
+                // 授权认证发送包
                 outgoingQueue.addFirst(new Packet(new RequestHeader(-4,
                         OpCode.auth), null, new AuthPacket(0, id.scheme,
                         id.data), null, null));
             }
+            // TODO 空包？？
             outgoingQueue.addFirst(new Packet(null, null, conReq,
                     null, null, readOnly));
             clientCnxnSocket.connectionPrimed();

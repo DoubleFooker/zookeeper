@@ -232,6 +232,7 @@ public class FileTxnSnapLog {
      * @return the highest zxid restored.
      * @throws IOException
      */
+    // TODO 作用没看懂，初始化读取snaplog，恢复记录
     public long fastForwardFromEdits(DataTree dt, Map<Long, Integer> sessions,
                                      PlayBackListener listener) throws IOException {
         TxnIterator itr = txnLog.read(dt.lastProcessedZxid+1);
@@ -258,6 +259,7 @@ public class FileTxnSnapLog {
                    throw new IOException("Failed to process transaction type: " +
                          hdr.getType() + " error: " + e.getMessage(), e);
                 }
+                // TODO listener 作用？
                 listener.onTxnLoaded(hdr, itr.getTxn());
                 if (!itr.next())
                     break;
@@ -320,6 +322,7 @@ public class FileTxnSnapLog {
                                 + ((CreateSessionTxn) txn).getTimeOut());
             }
             // give dataTree a chance to sync its lastProcessedZxid
+            // hdr type=careteSession
             rc = dt.processTxn(hdr, txn);
             break;
         case OpCode.closeSession:

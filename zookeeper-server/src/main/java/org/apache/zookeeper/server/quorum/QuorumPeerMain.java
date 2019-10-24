@@ -17,23 +17,22 @@
  */
 package org.apache.zookeeper.server.quorum;
 
-import java.io.IOException;
-
-import javax.management.JMException;
-import javax.security.sasl.SaslException;
-
 import org.apache.yetus.audience.InterfaceAudience;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.zookeeper.jmx.ManagedUtil;
+import org.apache.zookeeper.server.DatadirCleanupManager;
 import org.apache.zookeeper.server.ServerCnxnFactory;
 import org.apache.zookeeper.server.ZKDatabase;
-import org.apache.zookeeper.server.DatadirCleanupManager;
 import org.apache.zookeeper.server.ZooKeeperServerMain;
 import org.apache.zookeeper.server.admin.AdminServer.AdminServerException;
 import org.apache.zookeeper.server.persistence.FileTxnSnapLog;
 import org.apache.zookeeper.server.persistence.FileTxnSnapLog.DatadirException;
 import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.management.JMException;
+import javax.security.sasl.SaslException;
+import java.io.IOException;
 
 /**
  *
@@ -77,7 +76,7 @@ public class QuorumPeerMain {
      * @param args path to the configfile
      */
     public static void main(String[] args) {
-        QuorumPeerMain main = new QuorumPeerMain();
+        QuorumPeerMain main =  new QuorumPeerMain();
         try {
             main.initializeAndRun(args);
         } catch (IllegalArgumentException e) {
@@ -86,6 +85,7 @@ public class QuorumPeerMain {
             System.err.println(USAGE);
             System.exit(2);
         } catch (ConfigException e) {
+            e.printStackTrace();
             LOG.error("Invalid config, exiting abnormally", e);
             System.err.println("Invalid config, exiting abnormally");
             System.exit(2);
@@ -104,16 +104,17 @@ public class QuorumPeerMain {
         LOG.info("Exiting normally");
         System.exit(0);
     }
-
     protected void initializeAndRun(String[] args)
         throws ConfigException, IOException, AdminServerException
     {
         QuorumPeerConfig config = new QuorumPeerConfig();
         if (args.length == 1) {
+            // 解析配置文件
             config.parse(args[0]);
         }
 
         // Start and schedule the the purge task
+        // 数据清理定时任务
         DatadirCleanupManager purgeMgr = new DatadirCleanupManager(config
                 .getDataDir(), config.getDataLogDir(), config
                 .getSnapRetainCount(), config.getPurgeInterval());
@@ -140,10 +141,12 @@ public class QuorumPeerMain {
 
       LOG.info("Starting quorum peer");
       try {
+          // 节点通信链接关联
           ServerCnxnFactory cnxnFactory = null;
           ServerCnxnFactory secureCnxnFactory = null;
 
           if (config.getClientPortAddress() != null) {
+              // 默认没有指定为 NIOServerCnxnFactory
               cnxnFactory = ServerCnxnFactory.createFactory();
               cnxnFactory.configure(config.getClientPortAddress(),
                       config.getMaxClientCnxns(),
@@ -156,7 +159,7 @@ public class QuorumPeerMain {
                       config.getMaxClientCnxns(),
                       true);
           }
-
+          // 节点参数的配置
           quorumPeer = getQuorumPeer();
           quorumPeer.setTxnFactory(new FileTxnSnapLog(
                       config.getDataLogDir(),
@@ -165,15 +168,18 @@ public class QuorumPeerMain {
           quorumPeer.enableLocalSessionsUpgrading(
               config.isLocalSessionsUpgradingEnabled());
           //quorumPeer.setQuorumPeers(config.getAllMembers());
+          // leader选举类型
           quorumPeer.setElectionType(config.getElectionAlg());
           quorumPeer.setMyid(config.getServerId());
           quorumPeer.setTickTime(config.getTickTime());
+          // session闲置超时时间
           quorumPeer.setMinSessionTimeout(config.getMinSessionTimeout());
           quorumPeer.setMaxSessionTimeout(config.getMaxSessionTimeout());
           quorumPeer.setInitLimit(config.getInitLimit());
           quorumPeer.setSyncLimit(config.getSyncLimit());
           quorumPeer.setConfigFileName(config.getConfigFilename());
           quorumPeer.setZKDatabase(new ZKDatabase(quorumPeer.getTxnFactory()));
+          // 默认实现QuorumMaj 集群节点信息，（集群节点总数，投票节点总数，observer节点数）
           quorumPeer.setQuorumVerifier(config.getQuorumVerifier(), false);
           if (config.getLastSeenQuorumVerifier()!=null) {
               quorumPeer.setLastSeenQuorumVerifier(config.getLastSeenQuorumVerifier(), false);
@@ -183,6 +189,7 @@ public class QuorumPeerMain {
           quorumPeer.setSecureCnxnFactory(secureCnxnFactory);
           quorumPeer.setSslQuorum(config.isSslQuorum());
           quorumPeer.setUsePortUnification(config.shouldUsePortUnification());
+          // 节点类型
           quorumPeer.setLearnerType(config.getPeerType());
           quorumPeer.setSyncEnabled(config.getSyncEnabled());
           quorumPeer.setQuorumListenOnAllIPs(config.getQuorumListenOnAllIPs());
@@ -201,7 +208,7 @@ public class QuorumPeerMain {
           }
           quorumPeer.setQuorumCnxnThreadsSize(config.quorumCnxnThreadsSize);
           quorumPeer.initialize();
-          
+          // 启动 QuorumPeer继承与zookeeperThread，
           quorumPeer.start();
           quorumPeer.join();
       } catch (InterruptedException e) {

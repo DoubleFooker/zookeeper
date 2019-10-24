@@ -872,15 +872,17 @@ public class ZooKeeper implements AutoCloseable {
             clientConfig = new ZKClientConfig();
         }
         this.clientConfig = clientConfig;
+        // watch 管理器
         watchManager = defaultWatchManager();
         watchManager.defaultWatcher = watcher;
         ConnectStringParser connectStringParser = new ConnectStringParser(
                 connectString);
         hostProvider = aHostProvider;
-
+        // 连接服务器，创建ClientCnxn对象，负责socket连接
         cnxn = createConnection(connectStringParser.getChrootPath(),
                 hostProvider, sessionTimeout, this, watchManager,
                 getClientCnxnSocket(), canBeReadOnly);
+        // 启动socket线程
         cnxn.start();
     }
 

@@ -275,6 +275,7 @@ public class ZooKeeperMain {
     }
 
     protected void connectToZK(String newHost) throws InterruptedException, IOException {
+        // 重新链接
         if (zk != null && zk.getState().isAlive()) {
             zk.close();
         }
@@ -285,6 +286,7 @@ public class ZooKeeperMain {
             System.setProperty(ZKClientConfig.SECURE_CLIENT, "true");
             System.out.println("Secure connection is enabled");
         }
+        // 连接实例
         zk = new ZooKeeperAdmin(host, Integer.parseInt(cl.getOption("timeout")), new MyWatcher(), readOnly);
     }
     
@@ -295,8 +297,10 @@ public class ZooKeeperMain {
     }
 
     public ZooKeeperMain(String args[]) throws IOException, InterruptedException {
+        // 客户端命令解析 保存所有options
         cl.parseOptions(args);
         System.out.println("Connecting to " + cl.getOption("server"));
+        // 链接zk
         connectToZK(cl.getOption("server"));
     }
 
@@ -305,6 +309,7 @@ public class ZooKeeperMain {
     }
 
     void run() throws CliException, IOException, InterruptedException {
+        // 启动等待客户端命令行输入
         if (cl.getCommand() == null) {
             System.out.println("Welcome to ZooKeeper!");
 
@@ -328,6 +333,7 @@ public class ZooKeeperMain {
 
                 String line;
                 Method readLine = consoleC.getMethod("readLine", String.class);
+                // 执行命令
                 while ((line = (String)readLine.invoke(console, getPrompt())) != null) {
                     executeLine(line);
                 }
@@ -368,7 +374,9 @@ public class ZooKeeperMain {
     public void executeLine(String line) throws CliException, InterruptedException, IOException {
       if (!line.equals("")) {
         cl.parseCommand(line);
+        // 保存历史命令
         addToHistory(commandCount,line);
+        //执行命令
         processCmd(cl);
         commandCount++;
       }

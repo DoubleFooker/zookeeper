@@ -596,6 +596,7 @@ public class FileTxnLog implements TxnLog {
                     break;
                 }
             }
+            // 日志分文件的 递归执行全部文件
             goToNextLog();
             next();
         }
